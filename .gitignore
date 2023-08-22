@@ -1,0 +1,9 @@
+*.pyc
+*.bak
+*.idea
+__pycache__/
+.ipynb_checkpoints/
+.*.swp
+train_xms/
+itinf_xms/
+slurm_jobs/

@@ -6,6 +6,11 @@ from common import elic
 
 
 class GDN1(tfc.GDN):
+  """
+  A copy of tfc.GDN that only implements the GDN1 activation (see CENIC, Johnston 2018);
+  otherwise the tf FLOP counter seems to have trouble with tfc.GDN and over-count the FLOPs of GDN1.
+  """
+
   def __init__(self,
                inverse=False,
                rectify=False,
@@ -61,8 +66,6 @@ class GDN1(tfc.GDN):
 def get_activation_op(activation):
   if activation is None:
     return activation
-  if activation == 'siren':
-    return SIREN_act
   if activation == 'prelu':
     return tf.keras.layers.PReLU()
   if activation.lower() in ('gdn', 'gdn1'):
@@ -88,6 +91,8 @@ conv_t_k3s1 = functools.partial(tf.keras.layers.Conv2DTranspose, kernel_size=3, 
 
 
 class BLS2017Analysis(tf.keras.Sequential):
+  """The analysis transform from bls2017.py in tfc."""
+
   def __init__(self, num_filters):
     def get_act():
       return get_activation_op('gdn')
@@ -108,6 +113,8 @@ class BLS2017Analysis(tf.keras.Sequential):
 
 
 class BLS2017Synthesis(tf.keras.Sequential):
+  """The synthesis transform from bls2017.py in tfc."""
+
   def __init__(self, num_filters):
     def get_act():
       return get_activation_op('igdn')
@@ -127,9 +134,57 @@ class BLS2017Synthesis(tf.keras.Sequential):
       activation=None))
 
 
+class MBT2018Analysis(tf.keras.Sequential):
+  """The analysis transform adapted from bmshj2018.py in tfc. Using a larger bottleneck size
+  (as specified by 'output_channels') seems to help increase the capacity at little cost ."""
+
+  def __init__(self, channels_base, output_channels=None):
+    super().__init__(name="MBT2018Analysis")
+    if output_channels is None:
+      output_channels = channels_base
+    self.add(tfc.SignalConv2D(
+      channels_base, (5, 5), name="layer_0", corr=True, strides_down=2,
+      padding="same_zeros", use_bias=True,
+      activation=tfc.GDN(name="gdn_0")))
+    self.add(tfc.SignalConv2D(
+      channels_base, (5, 5), name="layer_1", corr=True, strides_down=2,
+      padding="same_zeros", use_bias=True,
+      activation=tfc.GDN(name="gdn_1")))
+    self.add(tfc.SignalConv2D(
+      channels_base, (5, 5), name="layer_2", corr=True, strides_down=2,
+      padding="same_zeros", use_bias=True,
+      activation=tfc.GDN(name="gdn_2")))
+    self.add(tfc.SignalConv2D(
+      output_channels, (5, 5), name="layer_3", corr=True, strides_down=2,
+      padding="same_zeros", use_bias=True,
+      activation=None))
+
+
+class MBT2018Synthesis(tf.keras.Sequential):
+  """The synthesis transform adapted from bmshj2018.py in tfc."""
+
+  def __init__(self, channels_base, output_channels=3):
+    super().__init__(name="MBT2018Synthesis")
+    self.add(tfc.SignalConv2D(
+      channels_base, (5, 5), name="layer_0", corr=False, strides_up=2,
+      padding="same_zeros", use_bias=True,
+      activation=tfc.GDN(name="igdn_0", inverse=True)))
+    self.add(tfc.SignalConv2D(
+      channels_base, (5, 5), name="layer_1", corr=False, strides_up=2,
+      padding="same_zeros", use_bias=True,
+      activation=tfc.GDN(name="igdn_1", inverse=True)))
+    self.add(tfc.SignalConv2D(
+      channels_base, (5, 5), name="layer_2", corr=False, strides_up=2,
+      padding="same_zeros", use_bias=True,
+      activation=tfc.GDN(name="igdn_2", inverse=True)))
+    self.add(tfc.SignalConv2D(
+      output_channels, (5, 5), name="layer_3", corr=False, strides_up=2,
+      padding="same_zeros", use_bias=True,
+      activation=None))
+
 
 class CNNAnalysis(tf.keras.Sequential):
-  """Analysis transform from mbt2018 (mean-scale hyperprior)."""
+  """Four-layer analysis transform adapted from mbt2018 (mean-scale hyperprior)."""
 
   def __init__(self, channels_base, output_channels=None, activation_type="leaky_relu"):
     activation = get_activation_op(activation_type)
@@ -145,7 +200,7 @@ class CNNAnalysis(tf.keras.Sequential):
 
 
 class CNNSynthesis(tf.keras.Sequential):
-  """Synthesis transform from mbt2018 (mean-scale hyperprior)."""
+  """Four-layer synthesis transform adapted from mbt2018 (mean-scale hyperprior)."""
 
   def __init__(self, channels_base, output_channels=3, activation_type="leaky_relu"):
     activation = get_activation_op(activation_type)
@@ -156,7 +211,6 @@ class CNNSynthesis(tf.keras.Sequential):
       conv_t_k5s2(output_channels, activation=None)
     ]
     super().__init__(layers=layers)
-
 
 
 class HyperAnalysis(tf.keras.Sequential):
@@ -185,10 +239,15 @@ class HyperSynthesis(tf.keras.Sequential):
     super().__init__(layers=layers, name="HyperSynthesis")
 
 
-
 class JPEGLikeSynthesis(tf.keras.Model):
   def __init__(self, output_channels=3, kernel_size=16, strides=16, padding='SAME', use_bias=True):
     """
+    A JPEG-like synthesis transform consisting of a single covn2d_tranpose layer. This
+    performs an affine transform on the vector of
+    latent coefficients at each spatial location, mapping each latent tensor [..., 1, 1, C] to
+     an image patch [..., 16, 16, 3]. The final output is formed by tiling the image patches
+     together.
+    This is almost JPEG if using kernel_size=8 (and maybe no affine offset?).
     :param use_offset:
     :param output_channels:
     :param kernel_size:
@@ -199,20 +258,24 @@ class JPEGLikeSynthesis(tf.keras.Model):
     """
     super().__init__()
     self.conv = tf.keras.layers.Conv2DTranspose(filters=output_channels, kernel_size=kernel_size,
-                                              strides=strides,
-                                              padding=padding,
-                                              use_bias=use_bias)
+                                                strides=strides,
+                                                padding=padding,
+                                                use_bias=use_bias)
 
   def call(self, x, training):
+    # if self.use_offset:
+    #   # Append a channel of ones (dummy coefficient) to the input.
+    #   x = tf.concat([x, tf.ones(x.shape[:3] + [1])], axis=-1)
     x = self.conv(x)
     return x
 
 
-
 class TwoLayerSynthesis(tf.keras.Model):
   def __init__(self, channels=(24, 3), strides=(8, 2), kernel_sizes=(13, 5),
-          activation_type="igdn"):
+               activation_type="igdn"):
     """
+    A synthesis transform consisting of two conv transposed layers with an optional activation in
+    between.
     """
     super().__init__()
     activation = get_activation_op(activation_type)
@@ -229,12 +292,14 @@ class TwoLayerSynthesis(tf.keras.Model):
     return x
 
 
-
 class TwoLayerResSynthesis(tf.keras.Model):
   def __init__(self, channels=(12, 3), strides=(8, 2), kernel_sizes=(13, 5),
                activation_type="igdn", res_type="conv"):
     """
-    Same as above, but with a residual connection.
+    Same as above, but with a residual connection. The residual connection will allow
+    the input tensor (z) to be added to the output of the first conv layer; a conv transpose or
+    depth_to_space is used to "upsample" z to match the output shape of the first conv layer.
+
     """
     super().__init__()
     activation = get_activation_op(activation_type)
@@ -271,3 +336,31 @@ class TwoLayerResSynthesis(tf.keras.Model):
     return x
 
 
+class JPEGLikeHyperSynthesis(tf.keras.Model):
+  """The synthesis transform for the entropy model parameters, JPEG-fied to save FLOPs.
+  """
+
+  def __init__(self, bottleneck_size, kernel_size=6):
+    super().__init__()
+    output_channels = bottleneck_size * 2  # For the predicted mean and scale parameters.
+    self.conv = tf.keras.layers.Conv2DTranspose(filters=output_channels, kernel_size=kernel_size,
+                                                strides=4,
+                                                padding="SAME", use_bias=True)
+
+  def call(self, x, training):
+    x = self.conv(x)
+    return x
+
+
+from common.utils import ClassBuilder
+from common.elic import ElicAnalysis, ElicSynthesis
+
+classes = [
+  BLS2017Analysis, BLS2017Synthesis,
+  CNNAnalysis, CNNSynthesis, HyperAnalysis, HyperSynthesis,
+  ElicAnalysis, ElicSynthesis,
+  JPEGLikeSynthesis, TwoLayerSynthesis, TwoLayerResSynthesis,
+  JPEGLikeHyperSynthesis
+]
+# Register the transform classes so they can be built from config dicts.
+class_builder = ClassBuilder({cls.__name__: cls for cls in classes})

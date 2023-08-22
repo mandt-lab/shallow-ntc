@@ -1,0 +1,3 @@
+[submodule "lpips_tf2"]
+	path = lpips_tf2
+	url = git@github.com:yiboyang/lpips_tf2.git
