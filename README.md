@@ -1,9 +1,8 @@
 # About
 
 This repo contains the source code and results in the ICCV 2023 paper
-[Computationally-Efficient Neural Image Compression with Shallow Decoders](https://arxiv.org/abs/2304.06244) (
-formerly titled "Asymmetrically-powered Neural Image Compression with Shallow
-Decoders").
+[Computationally-Efficient Neural Image Compression with Shallow Decoders](https://yiboyang.com/files/iccv23.pdf)
+(formerly titled "Asymmetrically-powered Neural Image Compression with Shallow Decoders").
 
 As far as we know, this is the first neural image compression method to operate with a decoding
 budget of less than 50K FLOPs/pixel while achieving rate-distortion performance competitive with
