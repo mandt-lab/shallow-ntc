@@ -4,9 +4,16 @@ This repo contains the source code and results in the ICCV 2023 paper
 [Computationally-Efficient Neural Image Compression with Shallow Decoders](https://yiboyang.com/files/iccv23.pdf)
 (formerly titled "Asymmetrically-powered Neural Image Compression with Shallow Decoders").
 
+![shallow ntc summarized in one picture](summary.png)
+
 As far as we know, this is the first neural image compression method to operate with a decoding
 budget of less than 50K FLOPs/pixel while achieving rate-distortion performance competitive with
 BPG, when measured in PSNR and BPP.
+
+**UPDATE [Nov 1, 2023]** Added pretrained checkpoints; download them [here](https://huggingface.co/yiboyang/shallow-ntc-checkpoints/).
+See [`notebooks/vis_syn_filters.ipynb`](notebooks/vis_syn_filters.ipynb) for an example for how to load a model and visualize
+the learned filters of the synthesis transform.
+
 
 # Software
 
@@ -86,6 +93,9 @@ training experiments:
 
 *In additional experiments we found this combination to give further improved R-D performance
 than the proposed two-layer synthesis + ELIC analysis.
+
+Some pretrained checkpoints can be found [here](https://huggingface.co/yiboyang/shallow-ntc-checkpoints/).
+See an example of working with a checkpoint [here](notebooks/vis_syn_filters.ipynb).
 
 # Evaluation
 

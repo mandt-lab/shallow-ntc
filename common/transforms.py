@@ -240,7 +240,8 @@ class HyperSynthesis(tf.keras.Sequential):
 
 
 class JPEGLikeSynthesis(tf.keras.Model):
-  def __init__(self, output_channels=3, kernel_size=16, strides=16, padding='SAME', use_bias=True):
+  def __init__(self, output_channels=3, kernel_size=16, strides=16,
+          padding='SAME', use_bias=True, use_offset=False):
     """
     A JPEG-like synthesis transform consisting of a single covn2d_tranpose layer. This
     performs an affine transform on the vector of
@@ -261,11 +262,12 @@ class JPEGLikeSynthesis(tf.keras.Model):
                                                 strides=strides,
                                                 padding=padding,
                                                 use_bias=use_bias)
+    self.use_offset = use_offset
 
   def call(self, x, training):
-    # if self.use_offset:
-    #   # Append a channel of ones (dummy coefficient) to the input.
-    #   x = tf.concat([x, tf.ones(x.shape[:3] + [1])], axis=-1)
+    if self.use_offset:
+      # Append a channel of ones (dummy coefficient) to the input.
+      x = tf.concat([x, tf.ones(x.shape[:3] + [1])], axis=-1)
     x = self.conv(x)
     return x
 
