@@ -69,18 +69,18 @@ def get_hyper():
   :return:
   """
   from common import hyper
-  # Example sweep over combinations of rd_lambdas and hidden activations.
+  # Example sweep over combinations of rd_lambdas.
   rd_lambdas = [0.08, 0.02, 0.005, 0.00125, 0.04, 0.01, 0.0025]
   rd_lambdas = hyper.sweep('model_config.rd_lambda', rd_lambdas)
-  activations = ['gelu', 'lrelu']
-  activations = hyper.sweep('model_config.transform_config.synthesis.activation_type',
-                            activations)
+  # activations = ['gelu', 'lrelu']
+  # activations = hyper.sweep('model_config.transform_config.synthesis.activation_type',
+  #                           activations)
 
   # # Also sweep over channels of the two syn layers.
   # hidden_channels = [12]
   # channels = [(hc, 3) for hc in hidden_channels]
   # channels = hyper.sweep('model_config.transform_config.synthesis.channels', channels)
 
-  hparam_cfgs = hyper.product(rd_lambdas, activations)
+  hparam_cfgs = hyper.product(rd_lambdas)
 
   return hparam_cfgs

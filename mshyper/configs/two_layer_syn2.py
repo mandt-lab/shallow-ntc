@@ -5,6 +5,12 @@ synthesis. The differences compared to the proposed two-layer syn architecture a
  - Here we drop the residual connection in the two-layer synthesis, which allows us to double the number of conv channels without too much increase in FLOPs (the first conv layer
   dominates the FLOP count).
  - We also train with mixed quantization as in Minnen et al. 2020.
+
+IMPORTANT: Note that 'hidden_channels' (config.model_config.transform_config.synthesis.channels[0])
+needs to be set to 24 to have comparable decoding complexity with the original
+two_layer_syn. The experiment below using 48 channels is just for illustration
+purpose (results in better R-D but more FLOPs than models in the paper).
+
 """
 
 import ml_collections
@@ -46,7 +52,8 @@ def get_config():
     latent_config=dict(
       uq=dict(method='mixedq')  # Train with mixed quantization.
       # uq=dict(method='unoise')  # Train with uniform noise injection (default).
-    )
+    ),
+    offset_heuristic=False  # For mixedq.
   )
 
   return config
@@ -80,7 +87,5 @@ def get_hyper():
   hidden_channels = [24, 48]
   channels = [(hc, 3) for hc in hidden_channels]
   channels = hyper.sweep('model_config.transform_config.synthesis.channels', channels)
-  uq_methods = ['unoise', 'mixedq']
-  uq_methods = hyper.sweep('model_config.latent_config.uq.method', uq_methods)
-  hparam_cfgs = hyper.product(rd_lambdas, channels, uq_methods)
+  hparam_cfgs = hyper.product(rd_lambdas, channels)
   return hparam_cfgs
