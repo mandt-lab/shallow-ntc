@@ -1,7 +1,7 @@
 # About
 
 This repo contains the source code and results in the ICCV 2023 paper
-[Computationally-Efficient Neural Image Compression with Shallow Decoders](https://yiboyang.com/files/iccv23.pdf)
+[Computationally-Efficient Neural Image Compression with Shallow Decoders](https://arxiv.org/pdf/2304.06244.pdf)
 (formerly titled "Asymmetrically-powered Neural Image Compression with Shallow Decoders").
 
 ![shallow ntc summarized in one picture](summary.png)
@@ -37,7 +37,7 @@ the learned filters of the synthesis transform.
 
 # Setup
 
-- Update `setup.py` according to your system and location of your data. You can find
+- Update the overall project configuration in [`configs.py`](configs.py) according to your system and location of your data. You can find
   instructions for obtaining coco, kodak, and tecnick data
   in https://github.com/mandt-lab/RD-sandwich#data-preparation
 - To use Slurm, create a directory called './slurm_jobs', and modify `slurm_template.py`
@@ -103,7 +103,7 @@ Here's an example command to launch Slurm jobs for evaluating trained checkpoint
 called $dataset_name:
 
 ```
-./ launch_eval.py --workdirs 'train_xms/188188/wid=*' --dataset $dataset_name
+./launch_eval.py --workdirs 'train_xms/188188/wid=*' --dataset $dataset_name
 ```
 
 where `train_xms/188188/wid=*` is an example glob pattern that matches the workdirs of the runs to
