@@ -1,0 +1,9 @@
+absl_py==1.2.0
+clu==0.0.7
+etils==1.5.2
+ml_collections==0.1.1
+numpy==1.23.5
+tensorflow==2.10.0
+tensorflow_compression==2.10.0
+tensorflow_datasets==4.6.0
+tensorflow_probability==0.18.0

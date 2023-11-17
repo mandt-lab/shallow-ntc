@@ -17,7 +17,8 @@ the learned filters of the synthesis transform.
 
 # Software
 
-- The code was developed in a python 3.10 environment on Linux.
+- The code was developed in a python 3.10 environment on Linux. The required packages
+  are listed in `requirements.txt`.
   The main dependices are tensorflow 2.10
   and [tensorflow-compression 2.10](https://github.com/tensorflow/compression/releases/tag/v2.10.0),
   which can be installed by
@@ -45,8 +46,8 @@ the learned filters of the synthesis transform.
 
 # Training
 
-Here's an example command to train a factorized prior model, with settings defined in a config
-file (run from the project root dir):
+Here's an example command to train a factorized prior model, with default hyperparameter
+settings defined in a config file (run from the project root dir):
 
 ```
 python -m factorized.train --config factorized/configs/bls2017.py --alsologtostderr
@@ -62,7 +63,7 @@ Here's an example command to launch Slurm training jobs with a hyperparameter sw
 config file:
 
 ```
-./launch.py --main factorized.train --config factorized/configs/bls2017.py
+./launch.py --main mshyper.train --config mshyper/configs/two_layer_syn.py
 ```
 
 By default, the experiment output will be written to `project_dir/train_xms`.
