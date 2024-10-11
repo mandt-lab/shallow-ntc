@@ -360,6 +360,7 @@ from common.elic import ElicAnalysis, ElicSynthesis
 classes = [
   BLS2017Analysis, BLS2017Synthesis,
   CNNAnalysis, CNNSynthesis, HyperAnalysis, HyperSynthesis,
+  MBT2018Analysis, MBT2018Synthesis,
   ElicAnalysis, ElicSynthesis,
   JPEGLikeSynthesis, TwoLayerSynthesis, TwoLayerResSynthesis,
   JPEGLikeHyperSynthesis
