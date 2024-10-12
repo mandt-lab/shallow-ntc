@@ -33,19 +33,12 @@ SCALE_FN = lambda i: tf.math.exp(tf.math.log(SCALE_MIN) + SCALE_FACTOR * i)
 
 CODING_RANK = 3
 
-# Hard-coded downsampling factor for the encoder (analysis + hyperanalysis).
-DOWNSAMPLE_FACTOR = 64
+# Dummy image for initialization etc.; should be >= the downsample factor of the model.
+DUMMY_IMG_DIM = 64
 
 # We use higher lambda at the beginning of training.
 HIGHER_LAMBDA_UNTIL = 0.2
 HIGHER_LAMBDA_FACTOR = 10.
-
-
-def get_bottleneck_size(analysis, img_dim):
-  # Get the number of channels of the latent tensor from running analysis transform.
-  dummy_img = tf.zeros([1, img_dim, img_dim, 3])
-  latents = analysis(dummy_img)
-  return latents.shape[-1]
 
 
 # Encapsulates model + optimizer.
@@ -121,8 +114,9 @@ class Model(tf.Module):
     synthesis_cfg = dict(transform_config["synthesis"])
     self._synthesis = transform_builder.build(synthesis_cfg.pop('cls'), **synthesis_cfg)
 
-    dummy_img_dim = DOWNSAMPLE_FACTOR
-    self._bottleneck_size = bottleneck_size = get_bottleneck_size(self._analysis, dummy_img_dim)
+    dummy_img = tf.zeros([1, DUMMY_IMG_DIM, DUMMY_IMG_DIM, 3])
+    dummy_latents = self._analysis(dummy_img)
+    self._bottleneck_size = bottleneck_size = dummy_latents.shape[-1]
     if "hyper_analysis" in transform_config:
       hyper_analysis_cfg = dict(transform_config["hyper_analysis"])
     else:
@@ -136,9 +130,14 @@ class Model(tf.Module):
     self._hyper_synthesis = transform_builder.build(hyper_synthesis_cfg.pop('cls'),
                                                     **hyper_synthesis_cfg)
 
-    hyper_bottleneck_size = get_bottleneck_size(lambda x: self._hyper_analysis(self._analysis(
-      x)), dummy_img_dim)
+    dummy_hyper_latents = self._hyper_analysis(dummy_latents)
+    hyper_bottleneck_size = dummy_hyper_latents.shape[-1]
     self._prior = tfc.NoisyDeepFactorized(batch_shape=(hyper_bottleneck_size,))
+
+    dummy_hyper_latents_dim = dummy_hyper_latents.shape[-2]
+    self.downsample_factor = int(DUMMY_IMG_DIM / dummy_hyper_latents_dim)
+    assert dummy_hyper_latents_dim * self.downsample_factor == DUMMY_IMG_DIM, "Downsample "
+    "factor should divide evenly into the dimension of init dummy image."
 
     if self._profile:
       self._analysis = profile_utils.with_timing(tf.function(self._analysis))
@@ -147,7 +146,6 @@ class Model(tf.Module):
       self._hyper_synthesis = profile_utils.with_timing(tf.function(self._hyper_synthesis))
 
       # Warm up tf.function on a dummy input to avoid inaccurate timing on the first call.
-      dummy_img = tf.zeros([1, dummy_img_dim, dummy_img_dim, 3])
       _ = self.end_to_end_frame_loss(dummy_img, training=False)
 
   @property
@@ -217,7 +215,7 @@ class Model(tf.Module):
     :param x:
     :return:
     """
-    x = pad_images(x, DOWNSAMPLE_FACTOR)  # TODO: obtain downsample factor from encoder.
+    x = pad_images(x, self.downsample_factor)
     if self._profile:
       timing_info = dict()
       y, time = self._analysis(x)
