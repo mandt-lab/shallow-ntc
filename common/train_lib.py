@@ -49,7 +49,7 @@ class Metrics(NamedTuple):
 
   @property
   def images_grid(self):
-    return {k: utils.visualize_image_batch(v, crop_dim=256) for (k, v) in self.images.items()}
+    return {k: utils.visualize_image_batch(v, crop_to_max_dim=256) for (k, v) in self.images.items()}
 
   @property
   def scalars_float(self):

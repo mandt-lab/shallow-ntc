@@ -26,19 +26,20 @@ def dump_json(obj, path):
     return json.dump(obj, f, indent=2)
 
 
-def visualize_image_batch(images: tf.Tensor, crop_dim=None, ncol=None):
+def visualize_image_batch(images: tf.Tensor, crop_to_max_dim=None, ncol=None):
   """
   Given a [B, H, W, C] batch of images, return a single [H', W', C] image that displays (crops of)
   the given images on a grid. The output image shape (H', W') will be the two closest divisors of B
   so the resulting img is as close to a square as possible.
   :param images:
-  :param crop_dim:
+  :param crop_to_max_dim: will take crops to ensure the images being displayed are at most say
+    256x256, to make the visualization look nice.
   :return:
   """
 
-  if crop_dim:
+  if crop_to_max_dim and images.shape[1] > crop_to_max_dim and images.shape[2] > crop_to_max_dim:
     from common.image_utils import center_crop_image
-    images = center_crop_image(images, crop_dim, crop_dim)
+    images = center_crop_image(images, crop_to_max_dim, crop_to_max_dim)
 
   batch_size = images.shape[0]
   if ncol is not None:
@@ -48,9 +49,9 @@ def visualize_image_batch(images: tf.Tensor, crop_dim=None, ncol=None):
   else:
     ncol, nrow = get_even_divisors(batch_size)
 
-  vis_image = tf.reshape(images, [ncol, nrow] + images.shape[1:])
+  vis_image = tf.reshape(images, [nrow, ncol] + images.shape[1:])
   vis_image = tf.transpose(vis_image, [0, 2, 1, 3, 4])  # More easily done in np with swapaxes(1,2)
-  vis_image = tf.reshape(vis_image, [ncol * crop_dim, nrow * crop_dim, -1])
+  vis_image = tf.reshape(vis_image, [nrow * images.shape[1], ncol * images.shape[2], -1])
   return vis_image
 
 
