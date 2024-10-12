@@ -138,49 +138,42 @@ class MBT2018Analysis(tf.keras.Sequential):
   """The analysis transform adapted from bmshj2018.py in tfc. Using a larger bottleneck size
   (as specified by 'output_channels') seems to help increase the capacity at little cost ."""
 
-  def __init__(self, channels_base, output_channels=None):
+  def __init__(self, channels_base, n_layers=4, output_channels=None):
     super().__init__(name="MBT2018Analysis")
-    if output_channels is None:
-      output_channels = channels_base
-    self.add(tfc.SignalConv2D(
-      channels_base, (5, 5), name="layer_0", corr=True, strides_down=2,
-      padding="same_zeros", use_bias=True,
-      activation=tfc.GDN(name="gdn_0")))
-    self.add(tfc.SignalConv2D(
-      channels_base, (5, 5), name="layer_1", corr=True, strides_down=2,
-      padding="same_zeros", use_bias=True,
-      activation=tfc.GDN(name="gdn_1")))
-    self.add(tfc.SignalConv2D(
-      channels_base, (5, 5), name="layer_2", corr=True, strides_down=2,
-      padding="same_zeros", use_bias=True,
-      activation=tfc.GDN(name="gdn_2")))
-    self.add(tfc.SignalConv2D(
-      output_channels, (5, 5), name="layer_3", corr=True, strides_down=2,
-      padding="same_zeros", use_bias=True,
-      activation=None))
+
+    for i in range(n_layers):
+      if i + 1 == n_layers:
+        ch = output_channels if output_channels is not None else channels_base
+        act = None
+      else:
+        ch = channels_base
+        act = tfc.GDN(name=f"gdn_{i}")
+
+      self.add(tfc.SignalConv2D(
+        ch, (5, 5), name=f"layer_{i}", corr=True, strides_down=2,
+        padding="same_zeros", use_bias=True,
+        activation=act))
 
 
 class MBT2018Synthesis(tf.keras.Sequential):
   """The synthesis transform adapted from bmshj2018.py in tfc."""
 
-  def __init__(self, channels_base, output_channels=3):
+  def __init__(self, channels_base, n_layers=4, output_channels=3):
     super().__init__(name="MBT2018Synthesis")
-    self.add(tfc.SignalConv2D(
-      channels_base, (5, 5), name="layer_0", corr=False, strides_up=2,
-      padding="same_zeros", use_bias=True,
-      activation=tfc.GDN(name="igdn_0", inverse=True)))
-    self.add(tfc.SignalConv2D(
-      channels_base, (5, 5), name="layer_1", corr=False, strides_up=2,
-      padding="same_zeros", use_bias=True,
-      activation=tfc.GDN(name="igdn_1", inverse=True)))
-    self.add(tfc.SignalConv2D(
-      channels_base, (5, 5), name="layer_2", corr=False, strides_up=2,
-      padding="same_zeros", use_bias=True,
-      activation=tfc.GDN(name="igdn_2", inverse=True)))
-    self.add(tfc.SignalConv2D(
-      output_channels, (5, 5), name="layer_3", corr=False, strides_up=2,
-      padding="same_zeros", use_bias=True,
-      activation=None))
+
+    for i in range(n_layers):
+      if i + 1 == n_layers:
+        ch = output_channels if output_channels is not None else channels_base
+        act = None
+      else:
+        ch = channels_base
+        act = tfc.GDN(name=f"igdn_{i}", inverse=True)
+
+      self.add(tfc.SignalConv2D(
+        ch, (5, 5), name=f"layer_{i}", corr=False, strides_up=2,
+        padding="same_zeros", use_bias=True,
+        activation=act))
+
 
 
 class CNNAnalysis(tf.keras.Sequential):
@@ -237,6 +230,36 @@ class HyperSynthesis(tf.keras.Sequential):
       conv_t_k3s1(bottleneck_size * 2, activation=None),
     ]
     super().__init__(layers=layers, name="HyperSynthesis")
+
+
+class HyperAnalysisSmall(tf.keras.Sequential):
+    """Small HyperAnalysis for small images."""
+
+    def __init__(self, bottleneck_size):
+        super().__init__(name="hyper_analysis_small")
+        self.add(tfc.SignalConv2D(
+            bottleneck_size, (3, 3), name="layer_0", corr=True, strides_down=1,
+            padding="same_zeros", use_bias=True,
+            activation=tf.nn.relu))
+        self.add(tfc.SignalConv2D(
+            bottleneck_size, (5, 5), name="layer_1", corr=True, strides_down=2,
+            padding="same_zeros", use_bias=False,
+            activation=None))
+
+
+class HyperSynthesisSmall(tf.keras.Sequential):
+    """Small HyperSynthesis for small images."""
+
+    def __init__(self, bottleneck_size):
+        super().__init__(name="hyper_synthesis_small")
+        self.add(tfc.SignalConv2D(
+            int(bottleneck_size * 1.5), (5, 5), name="layer_0", corr=False, strides_up=2,
+            padding="same_zeros", use_bias=True,
+            activation=tf.nn.relu))
+        self.add(tfc.SignalConv2D(
+            int(bottleneck_size * 2), (3, 3), name="layer_1", corr=False, strides_up=1,
+            padding="same_zeros", use_bias=True,
+            activation=None))
 
 
 class JPEGLikeSynthesis(tf.keras.Model):
@@ -361,6 +384,7 @@ classes = [
   BLS2017Analysis, BLS2017Synthesis,
   CNNAnalysis, CNNSynthesis, HyperAnalysis, HyperSynthesis,
   MBT2018Analysis, MBT2018Synthesis,
+  HyperAnalysisSmall, HyperSynthesisSmall,
   ElicAnalysis, ElicSynthesis,
   JPEGLikeSynthesis, TwoLayerSynthesis, TwoLayerResSynthesis,
   JPEGLikeHyperSynthesis
