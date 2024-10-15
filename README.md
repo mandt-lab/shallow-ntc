@@ -4,7 +4,15 @@ This repo contains the source code and results in the ICCV 2023 paper
 [Computationally-Efficient Neural Image Compression with Shallow Decoders](https://arxiv.org/pdf/2304.06244.pdf)
 (formerly titled "Asymmetrically-powered Neural Image Compression with Shallow Decoders").
 
+The high-level idea is to improve the decoding efficiency of neural compression
+ (see [intro article](https://arxiv.org/abs/2202.06533)) by adopting an asymmetric autoencoder architecture,
+which pairs a powerful encoder (and potentially one that is defined implicitly through iterative optimization)
+with a shallow/lightweight decoder. This results in competitive rate-distortion performance
+at a drastically reduced decoding computation budget.
+
+
 ![shallow ntc summarized in one picture](summary.png)
+
 
 As far as we know, this is the first neural image compression method to operate with a decoding
 budget of less than 50K FLOPs/pixel while achieving rate-distortion performance competitive with
